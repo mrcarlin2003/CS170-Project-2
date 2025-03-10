@@ -1,9 +1,28 @@
 #include <iostream>
 #include <string>
+#include <vector>
+#include <numeric>
+#include <random>
+#include <iomanip>
+#include <algorithm>
+#include <fstream>
+#include <sstream>
+#include <variant>
+#include <set>
+#include <cmath>
+#include <chrono>
 
 using namespace std;
 
 // According to the key, I must use Small 119 and Big 60
+
+struct Dataset {
+    vector<vector<double>> features;
+    vector<int> classes;
+    int numInstances;
+    int numFeatures;
+};
+
 
 int main() {
     string userFile = "";
@@ -24,8 +43,16 @@ int main() {
     cin >> userChoice;
     cout << endl;
 
-    cout << "This dataset has [blank] features (not including the class attribute), with [blank] instances." << endl;
+    // Dataset data = loadDataset(userFile);
 
+    // cout << "This dataset has " << data.numFeatures << " features (not including the class attribute), with " << data.numInstances << " instances." << endl << endl;
+
+    if (userChoice == 1) {
+        // forwardSelection(data);
+    }
+    else if (userChoice == 2) {
+        // backwardElimination(data);
+    }
 
     return 0;
 }
