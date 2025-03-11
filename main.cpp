@@ -23,6 +23,7 @@ struct Dataset {
     int numFeatures;
 };
 
+Dataset loadDataset(const string &userFile);
 
 int main() {
     string userFile = "";
@@ -43,7 +44,7 @@ int main() {
     cin >> userChoice;
     cout << endl;
 
-    // Dataset data = loadDataset(userFile);
+    Dataset data = loadDataset(userFile);
 
     // cout << "This dataset has " << data.numFeatures << " features (not including the class attribute), with " << data.numInstances << " instances." << endl << endl;
 
@@ -55,4 +56,41 @@ int main() {
     }
 
     return 0;
+}
+
+Dataset loadDataset(const string &userFile) {
+    Dataset data;
+    ifstream file(userFile);
+
+    if (!file.is_open()) {
+        cout << "Failed to open file: " << userFile << endl;
+        exit(1);
+    }
+
+    string line;
+    while (getline(file, line)) {
+        istringstream iss(line);
+        double value;
+        vector<double> instance;
+
+        iss >> value;
+        data.classes.push_back(static_cast<int>(value));
+
+        while (iss >> value) {
+            instance.push_back(value);
+        }
+
+        data.features.push_back(instance);
+    }
+
+    data.numInstances = data.features.size();
+    if (data.numInstances > 0) {
+        data.numFeatures = data.features[0].size();
+    }
+    else {
+        data.numFeatures = 0;
+    }
+
+    file.close();
+    return data;
 }
