@@ -17,13 +17,19 @@ using namespace std;
 // According to the key, I must use Small 119 and Big 60
 
 struct Dataset {
-    vector<vector<double>> features;
+    vector<vector<double>> features; // 2d vector
     vector<int> classes;
     int numInstances;
     int numFeatures;
 };
 
 Dataset loadDataset(const string &userFile);
+
+double euclideanDistance(const vector<double> &a, const vector<double> &b);
+
+int nearestNeighborClassifier(const Dataset &data, int testIndex, const vector<int> &selectedFeatures);
+
+double leaveOneOutCrossValidation(const Dataset &data, const vector<int> &selectedFeatures);
 
 int main() {
     string userFile = "";
@@ -58,7 +64,7 @@ int main() {
     return 0;
 }
 
-Dataset loadDataset(const string &userFile) {
+Dataset loadDataset(const string &userFile) { // read from file
     Dataset data;
     ifstream file(userFile);
 
@@ -93,4 +99,52 @@ Dataset loadDataset(const string &userFile) {
 
     file.close();
     return data;
+}
+
+double euclideanDistance(const vector<double> &a, const vector<double> &b) { // calculate the distance between two features
+    double sum = 0.0;
+
+    for (int i = 0; i < a.size(); ++i) {
+        sum += pow(a[i] - b[i], 2);
+    }
+
+    return sqrt(sum);
+}
+
+int nearestNeighborClassifier(const Dataset &data, int testIndex, const vector<int> &selectedFeatures) { // returns the class of the nearest neighbor
+    int nearestNeighbor = -1;
+    double minDistance = INFINITY;
+
+    for (int i = 0; i < data.numInstances; ++i) {
+        if (i == testIndex) continue;
+
+        vector<double> testFeatures, trainFeatures;
+        for (int feature : selectedFeatures) {
+            testFeatures.push_back(data.features[testIndex][feature]);
+            trainFeatures.push_back(data.features[i][feature]);
+        }
+
+        double distance = euclideanDistance(testFeatures, trainFeatures);
+        
+        if (distance < minDistance) {
+            minDistance = distance;
+            nearestNeighbor = i;
+        }
+    }
+
+    return data.classes[nearestNeighbor];
+}
+
+double leaveOneOutCrossValidation(const Dataset &data, const vector<int> &selectedFeatures) { // calculate accuracy
+    int numCorrectClassifications = 0;
+
+    for (int i = 0; i < data.numInstances; ++i) {
+        int predictedClass = nearestNeighborClassifier(data, i, selectedFeatures);
+
+        if (predictedClass == data.classes[i]) {
+            ++numCorrectClassifications;
+        }
+    }
+
+    return static_cast<double>(numCorrectClassifications) / data.numInstances; // (correct classifications / total instances)
 }
