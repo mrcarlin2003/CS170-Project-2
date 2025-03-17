@@ -61,7 +61,16 @@ int main() {
         return 1;
     }
 
-    // cout << "This dataset has " << data.numFeatures << " features (not including the class attribute), with " << data.numInstances << " instances." << endl << endl;
+    vector<int> totalFeatures(data.numFeatures);
+    
+    for (int i = 0; i < data.numFeatures; ++i) {
+        totalFeatures.push_back(i);
+    }
+
+    double initialAccuracy = leaveOneOutCrossValidation(data, totalFeatures);
+
+    cout << "This dataset has " << data.numFeatures << " features (not including the class attribute), with " << data.numInstances << " instances." << endl;
+    cout << "Running nearest neighbor with all " << data.numFeatures << " features, using \"leaving-one-out\" evaluation, I get an accuracy of " << initialAccuracy * 100 << "%" << endl << endl;
 
     if (userChoice == 1) {
         forwardSelection(data);
@@ -113,7 +122,7 @@ Dataset loadDataset(const string &userFile) { // read from file
 double euclideanDistance(const vector<double> &a, const vector<double> &b) { // calculate the distance between two features
     double sum = 0.0;
 
-    for (int i = 0; i < a.size(); ++i) {
+    for (size_t i = 0; i < a.size(); ++i) {
         sum += pow(a[i] - b[i], 2);
     }
 
@@ -169,7 +178,7 @@ void forwardSelection(const Dataset &data) {
 
     double bestTotalAccuracy = 0.0;
 
-    cout << "Runnning Forward Selection..." << endl;
+    cout << "Beginning search." << endl << endl;
 
     for (int level = 0; level < data.numFeatures; ++level) {
         int bestFeature = -1;
@@ -181,7 +190,16 @@ void forwardSelection(const Dataset &data) {
 
             double accuracy = leaveOneOutCrossValidation(data, tempFeatures);
 
-            cout << "Considering adding feature " << feature + 1 << ", Accuracy: " << accuracy << endl;
+            cout << "Using feature(s) {";
+
+            for (size_t i = 0; i < tempFeatures.size(); ++i) {
+                cout << tempFeatures[i] + 1;
+                if (i < tempFeatures.size() - 1) {
+                    cout << ",";
+                }
+            }
+
+            cout << "} accuracy is " << accuracy * 100 << "%" << endl;
 
             if (accuracy > bestAccuracy) {
                 bestAccuracy = accuracy;
@@ -193,11 +211,23 @@ void forwardSelection(const Dataset &data) {
             selectedFeatures.push_back(bestFeature);
             availableFeatures.erase(remove(availableFeatures.begin(), availableFeatures.end(), bestFeature), availableFeatures.end());
 
-            cout << "On level " << level + 1 << " added feature " << bestFeature + 1 << "to the current set." << endl;
+            cout << endl << "Feature set {";
+
+            for (size_t i = 0; i < selectedFeatures.size(); ++i) {
+                cout << selectedFeatures[i] + 1;
+                if (i < selectedFeatures.size() - 1) {
+                    cout << ",";
+                }
+            }
+
+            cout << "} was best, accuracy is " << bestAccuracy * 100 << "%" << endl << endl;
 
             if (bestAccuracy > bestTotalAccuracy) {
                 bestTotalAccuracy = bestAccuracy;
                 bestFeatures = selectedFeatures;
+            }
+            else {
+                cout << "(Warning, Accuracy has decreased! Continuing search in case of local maxima)" << endl;
             }
         }
         else {
@@ -205,11 +235,14 @@ void forwardSelection(const Dataset &data) {
         }
     }
 
-    cout << endl << "Best Feature Subset: ";
-    for (int f: bestFeatures) {
-        cout << f + 1 << " ";
+    cout << endl << "Finished search!!! The best Feature subset is {";
+    for (size_t i = 0; i < bestFeatures.size(); ++i) {
+        cout << bestFeatures[i] + 1;
+        if (i < bestFeatures.size() - 1) {
+            cout << ",";
+        }
     }
-    cout << endl << "Final Accuracy: " << bestTotalAccuracy << endl;
+    cout << "}, which has an accuracy of " << bestTotalAccuracy * 100 << "%" << endl;
 }
 
 void backwardElimination(const Dataset &data) {
@@ -222,11 +255,23 @@ void backwardElimination(const Dataset &data) {
     vector<int> bestFeatures = selectedFeatures;
     double bestTotalAccuracy = leaveOneOutCrossValidation(data, selectedFeatures);
 
-    cout << "Runnning Backward Elimination..." << endl;
+    cout << "Beginning search." << endl << endl;
+
+    cout << "Using feature(s) {";
+
+    for (size_t i = 0; i < selectedFeatures.size(); ++i) {
+        cout << selectedFeatures[i] + 1;
+        if (i < selectedFeatures.size() - 1) {
+            cout << ",";
+        }
+    }
+
+    cout << "} accuracy is " << bestTotalAccuracy * 100 << "%" << endl;
 
     for (int level = data.numFeatures; level > 1; --level) {
         int worstFeature = -1;
         double bestAccuracy = 0.0;
+        vector<int> tempBestFeatures = selectedFeatures;
 
         for (int feature : selectedFeatures) {
             vector<int> tempFeatures = selectedFeatures;
@@ -234,22 +279,44 @@ void backwardElimination(const Dataset &data) {
 
             double accuracy = leaveOneOutCrossValidation(data, tempFeatures);
 
-            cout << "Considering removing feature " << feature + 1 << ", Accuracy: " << accuracy << endl;
+            cout << "Using feature(s) {";
+
+            for (size_t i = 0; i < tempFeatures.size(); ++i) {
+                cout << tempFeatures[i] + 1;
+                if (i != tempFeatures.size() - 1) {
+                    cout << ",";
+                }
+            }
+
+            cout << "} accuracy is " << accuracy * 100 << "%" << endl;
 
             if (accuracy > bestAccuracy) {
                 bestAccuracy = accuracy;
                 worstFeature = feature;
+                tempBestFeatures = tempFeatures;
             }
         }
 
         if (worstFeature != -1) {
             selectedFeatures.erase(remove(selectedFeatures.begin(), selectedFeatures.end(), worstFeature), selectedFeatures.end());
 
-            cout << "On level " << data.numFeatures - level + 1 << ", removed features " << worstFeature + 1 << "." << endl;
+            cout << endl << "Feature set {";
+
+            for (size_t i = 0; i < selectedFeatures.size(); ++i) {
+                cout << selectedFeatures[i] + 1;
+                if (i != selectedFeatures.size() - 1) {
+                    cout << ",";
+                }
+            }
+
+            cout << "} was best, accuracy is " << bestAccuracy * 100 << "%" << endl << endl;
 
             if (bestAccuracy > bestTotalAccuracy) {
                 bestTotalAccuracy = bestAccuracy;
                 bestFeatures = selectedFeatures;
+            }
+            else {
+                cout << "(Warning, Accuracy has decreased! Continuing search in case of local maxima)" << endl;
             }
         }
         else {
@@ -257,9 +324,12 @@ void backwardElimination(const Dataset &data) {
         }
     }
 
-    cout << endl << "Best Feature Subset: ";
-    for (int f: bestFeatures) {
-        cout << f + 1 << " ";
+    cout << endl << "Finished search!!! The best feature subset is {";
+    for (size_t i = 0; i < bestFeatures.size(); ++i) {
+        cout << bestFeatures[i] + 1;
+        if (i != bestFeatures.size() - 1) {
+            cout << ",";
+        }
     }
-    cout << endl << "Final Accuracy: " << bestTotalAccuracy << endl;
+    cout << "}, which has an accuracy of " << bestTotalAccuracy * 100 << "%" << endl;
 }
